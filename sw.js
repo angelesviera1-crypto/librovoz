@@ -1,13 +1,15 @@
-const CACHE = 'librovoz-v1';
+const CACHE = 'librovoz-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  '/librovoz/',
+  '/librovoz/index.html',
+  '/librovoz/manifest.json',
+  '/librovoz/icon-192.png',
+  '/librovoz/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
   );
   self.skipWaiting();
 });
@@ -22,9 +24,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // For API calls (Anthropic) always go to network
-  if (e.request.url.includes('anthropic.com')) return;
+  if (e.request.url.includes('anthropic.com') || e.request.url.includes('fonts.googleapis.com')) return;
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
   );
 });

@@ -2,7 +2,7 @@
   "name": "LibroVoz",
   "short_name": "LibroVoz",
   "description": "Tu biblioteca en audio. Escucha libros mientras manejas.",
-  "start_url": "/",
+  "start_url": "/librovoz/",
   "display": "standalone",
   "background_color": "#0e0c0a",
   "theme_color": "#d4a84b",

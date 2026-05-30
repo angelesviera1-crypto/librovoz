@@ -409,7 +409,7 @@ select option { background: #1a1714; }
   <div class="panel" id="panel-archivo">
     <div id="upload-section">
       <div class="upload-zone" id="upload-zone"
-        ondragover="ev.preventDefault();this.classList.add('drag-over')"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
         ondrop="handleDrop(event)">
         <input type="file" id="file-input" accept=".txt,.pdf,.md,.html,.epub,.rtf" onchange="handleFileSelect(event)">
@@ -856,7 +856,7 @@ function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // PWA Service Worker
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/librovoz/sw.js").catch(() => {});
     });
   }
 

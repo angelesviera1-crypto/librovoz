@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LibroVoz</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#d4a84b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LibroVoz">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0c0a;
+  --surface: #1a1714;
+  --surface2: #231f1b;
+  --border: #2e2924;
+  --amber: #d4a84b;
+  --amber-dim: #8a6a28;
+  --amber-glow: rgba(212,168,75,0.12);
+  --text: #e8e0d4;
+  --muted: #8a7f72;
+  --red: #c0392b;
+  --green: #2ecc71;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::after {
+  content: '';
+  position: fixed;
+  top: -150px; left: 50%;
+  transform: translateX(-50%);
+  width: 500px; height: 350px;
+  background: radial-gradient(ellipse, rgba(212,168,75,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 36px 20px 80px;
+  position: relative; z-index: 1;
+}
+header { text-align: center; margin-bottom: 40px; }
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  color: var(--amber);
+  letter-spacing: -0.02em;
+}
+.logo span { font-style: italic; color: var(--text); }
+.tagline {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px;
+  margin-bottom: 24px;
+}
+.tab {
+  flex: 1; padding: 9px;
+  border: none; background: transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; border-radius: 7px;
+  transition: all 0.18s;
+}
+.tab.active {
+  background: var(--surface2);
+  color: var(--amber);
+  border: 1px solid var(--border);
+}
+.tab:not(.active):hover { color: var(--text); }
+
+/* Panels */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.char-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+textarea {
+  width: 100%; background: transparent; border: none;
+  padding: 16px; color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.93rem; line-height: 1.75;
+  resize: none; min-height: 200px; outline: none;
+}
+textarea::placeholder { color: var(--muted); }
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px; padding: 44px 24px;
+  text-align: center; cursor: pointer;
+  transition: all 0.22s;
+  background: var(--surface);
+  position: relative;
+  margin-bottom: 16px;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--amber-dim);
+  background: var(--amber-glow);
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0;
+  cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 2.4rem; display: block; opacity: 0.45; margin-bottom: 10px; }
+.upload-text { font-size: 0.88rem; color: var(--muted); margin-bottom: 4px; }
+.upload-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; color: var(--muted); opacity: 0.6; letter-spacing: 0.06em;
+}
+
+/* File loaded state */
+.file-loaded-bar {
+  background: var(--amber-glow);
+  border: 1px solid var(--amber-dim);
+  border-radius: 14px; padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.file-loaded-bar .fi { font-size: 1.8rem; }
+.file-loaded-bar .finfo { flex: 1; }
+.file-loaded-bar .fname {
+  font-size: 0.88rem; font-weight: 500; color: var(--amber);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;
+}
+.file-loaded-bar .fmeta {
+  font-family: 'DM Mono', monospace; font-size: 0.67rem; color: var(--muted); margin-top: 2px;
+}
+.btn-sm {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  font-size: 0.74rem; transition: all 0.18s; flex-shrink: 0;
+}
+.btn-sm:hover { border-color: var(--red); color: var(--red); }
+
+/* Extracting loader */
+.extracting {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 24px;
+  text-align: center; margin-bottom: 16px;
+}
+.spinner {
+  width: 32px; height: 32px; margin: 0 auto 12px;
+  border: 3px solid var(--border);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.extracting p { font-size: 0.82rem; color: var(--muted); }
+.extracting .ext-file { color: var(--amber); font-weight: 500; margin-bottom: 4px; }
+
+/* Settings */
+.settings-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+}
+@media(max-width:520px){ .settings-grid { grid-template-columns: 1fr; } }
+.setting-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+}
+.setting-block.full { grid-column: 1/-1; }
+.s-label {
+  font-family: 'DM Mono', monospace; font-size: 0.67rem;
+  color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+  display: flex; justify-content: space-between; margin-bottom: 9px;
+}
+.s-val { color: var(--amber); }
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--border); border-radius: 2px; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--amber); cursor: pointer;
+  box-shadow: 0 0 6px rgba(212,168,75,0.35);
+}
+select {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text);
+  padding: 8px 30px 8px 10px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.83rem;
+  outline: none; cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5z' fill='%238a7f72'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+select option { background: #1a1714; }
+.speed-btns { display: flex; gap: 5px; margin-top: 9px; flex-wrap: wrap; }
+.spd {
+  padding: 3px 9px; border: 1px solid var(--border);
+  border-radius: 20px; background: none; color: var(--muted);
+  font-size: 0.7rem; font-family: 'DM Mono', monospace;
+  cursor: pointer; transition: all 0.14s;
+}
+.spd.active, .spd:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+
+/* Main action button */
+.btn-main {
+  width: 100%; background: linear-gradient(135deg, var(--amber-dim), var(--amber));
+  border: none; color: #0e0c0a; padding: 15px;
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.88rem;
+  cursor: pointer; transition: all 0.22s; letter-spacing: 0.04em;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-main:hover { box-shadow: 0 4px 18px rgba(212,168,75,0.28); transform: translateY(-1px); }
+.btn-main:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Player */
+.player-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 22px; margin-bottom: 16px;
+}
+.now-reading {
+  font-family: 'DM Mono', monospace; font-size: 0.65rem;
+  color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px;
+}
+.preview-text {
+  font-family: 'Playfair Display', serif; font-style: italic;
+  font-size: 0.95rem; color: var(--text); opacity: 0.65;
+  line-height: 1.5; max-height: 46px; overflow: hidden; margin-bottom: 18px;
+}
+.progress-track {
+  height: 3px; background: var(--border); border-radius: 2px;
+  margin-bottom: 7px; cursor: pointer; position: relative;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+  border-radius: 2px; width: 0%; transition: width 0.4s;
+  position: relative;
+}
+.progress-fill::after {
+  content: ''; position: absolute; right: -1px; top: -4px;
+  width: 11px; height: 11px; background: var(--amber);
+  border-radius: 50%; box-shadow: 0 0 6px rgba(212,168,75,0.5);
+}
+.prog-stats {
+  display: flex; justify-content: space-between;
+  font-family: 'DM Mono', monospace; font-size: 0.66rem; color: var(--muted);
+  margin-bottom: 18px;
+}
+.controls {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+}
+.btn-skip {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  transition: all 0.18s; padding: 8px; border-radius: 50%;
+}
+.btn-skip:hover { color: var(--text); transform: scale(1.1); }
+.btn-skip svg { width: 20px; height: 20px; }
+.btn-play {
+  width: 58px; height: 58px; background: var(--amber);
+  border: none; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; box-shadow: 0 0 18px rgba(212,168,75,0.28); flex-shrink: 0;
+}
+.btn-play:hover { background: #e8b84e; box-shadow: 0 0 28px rgba(212,168,75,0.45); transform: scale(1.05); }
+.btn-play:disabled { background: var(--border); box-shadow: none; cursor: not-allowed; transform: none; }
+.btn-play svg { width: 24px; height: 24px; fill: #0e0c0a; }
+
+/* Status bar */
+.status-bar {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 15px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 16px; font-size: 0.8rem; color: var(--muted); min-height: 42px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border); flex-shrink: 0; transition: all 0.3s;
+}
+.dot.speaking { background: var(--amber); animation: pulse 1.2s infinite; }
+.dot.ready { background: var(--green); }
+.dot.error { background: var(--red); }
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(212,168,75,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(212,168,75,0); }
+}
+.wave { display: flex; align-items: center; gap: 2px; height: 20px; margin-left: auto; }
+.wave.hidden { display: none; }
+.wb { width: 3px; background: var(--amber); border-radius: 2px; animation: wv 0.7s ease-in-out infinite; }
+.wb:nth-child(1){height:7px;animation-delay:0s}
+.wb:nth-child(2){height:14px;animation-delay:0.1s}
+.wb:nth-child(3){height:10px;animation-delay:0.2s}
+.wb:nth-child(4){height:18px;animation-delay:0.15s}
+.wb:nth-child(5){height:9px;animation-delay:0.05s}
+@keyframes wv { 0%,100%{transform:scaleY(0.4);opacity:0.35} 50%{transform:scaleY(1);opacity:1} }
+
+/* Text reader */
+.text-reader {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px;
+  max-height: 300px; overflow-y: auto;
+  font-size: 0.92rem; line-height: 1.8; color: var(--text);
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.text-reader::-webkit-scrollbar{width:3px}
+.text-reader::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sent-active { background: rgba(212,168,75,0.2); color: var(--amber); border-radius: 3px; padding: 0 2px; }
+.sent-done { color: var(--muted); opacity: 0.45; }
+.empty-player { text-align: center; padding: 44px 20px; color: var(--muted); }
+.empty-player .ei { font-size: 2.8rem; opacity: 0.28; display: block; margin-bottom: 12px; }
+.empty-player p { font-size: 0.84rem; line-height: 1.6; max-width: 260px; margin: 0 auto; }
+
+/* Error box */
+.error-box {
+  background: rgba(192,57,43,0.1); border: 1px solid rgba(192,57,43,0.3);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 0.82rem; color: #e74c3c; margin-bottom: 14px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">Libro<span>Voz</span></div>
+    <div class="tagline">Tu biblioteca en audio · Conduce sin perder el hilo</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('texto')">✍ Texto</button>
+    <button class="tab" onclick="switchTab('archivo')">📄 Archivo</button>
+    <button class="tab" onclick="switchTab('player')">🎧 Reproducir</button>
+  </div>
+
+  <!-- TEXTO -->
+  <div class="panel active" id="panel-texto">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">Pega tu texto aquí</span>
+        <span class="char-count" id="char-count">0 caracteres</span>
+      </div>
+      <textarea id="text-input" placeholder="Pega el texto de tu libro, artículo o capítulo aquí..." oninput="updateCharCount()"></textarea>
+    </div>
+    <div class="settings-grid">
+      <div class="setting-block full">
+        <div class="s-label"><span>Voz</span></div>
+        <select id="voice-select" onchange="syncSettings()"></select>
+      </div>
+      <div class="setting-block">
+        <div class="s-label"><span>Velocidad</span><span class="s-val" id="rate-v">1.0×</span></div>
+        <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1.0"
+          oninput="document.getElementById('rate-v').textContent=parseFloat(this.value).toFixed(1)+'×'; syncSettings()">
+        <div class="speed-btns">
+          <button class="spd" onclick="setSpeed(0.75)">0.75×</button>
+          <button class="spd active" onclick="setSpeed(1.0)">1×</button>
+          <button class="spd" onclick="setSpeed(1.25)">1.25×</button>
+          <button class="spd" onclick="setSpeed(1.5)">1.5×</button>
+          <button class="spd" onclick="setSpeed(1.75)">1.75×</button>
+        </div>
+      </div>
+      <div class="setting-block">
+        <div class="s-label"><span>Tono</span><span class="s-val" id="pitch-v">1.0</span></div>
+        <input type="range" id="pitch" min="0.5" max="1.5" step="0.1" value="1.0"
+          oninput="document.getElementById('pitch-v').textContent=parseFloat(this.value).toFixed(1); syncSettings()">
+      </div>
+    </div>
+    <button class="btn-main" onclick="startFromText()">
+      <svg viewBox="0 0 24 24" width="17" height="17"><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
+      Comenzar lectura
+    </button>
+  </div>
+
+  <!-- ARCHIVO -->
+  <div class="panel" id="panel-archivo">
+    <div id="upload-section">
+      <div class="upload-zone" id="upload-zone"
+        ondragover="ev.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleDrop(event)">
+        <input type="file" id="file-input" accept=".txt,.pdf,.md,.html,.epub,.rtf" onchange="handleFileSelect(event)">
+        <span class="upload-icon">📚</span>
+        <div class="upload-text">Arrastra tu libro aquí o toca para seleccionar</div>
+        <div class="upload-hint">.txt · .pdf · .md · .html · .epub</div>
+      </div>
+    </div>
+    <div id="extracting-section" style="display:none">
+      <div class="extracting">
+        <div class="spinner"></div>
+        <div class="ext-file" id="extracting-name">archivo.pdf</div>
+        <p>Extrayendo texto con IA...</p>
+      </div>
+    </div>
+    <div id="file-ready-section" style="display:none">
+      <div class="file-loaded-bar">
+        <span class="fi" id="file-icon-display">📖</span>
+        <div class="finfo">
+          <div class="fname" id="fname-display">—</div>
+          <div class="fmeta" id="fmeta-display">—</div>
+        </div>
+        <button class="btn-sm" onclick="resetFile()">✕ Quitar</button>
+      </div>
+    </div>
+    <div id="file-error-section" style="display:none">
+      <div class="error-box" id="file-error-text">Error al extraer el archivo.</div>
+      <button class="btn-sm" onclick="resetFile()" style="margin-bottom:14px">Intentar con otro archivo</button>
+    </div>
+    <div class="settings-grid" id="file-settings" style="display:none">
+      <div class="setting-block full">
+        <div class="s-label"><span>Voz</span></div>
+        <select id="voice-select-f" onchange="syncSettings()"></select>
+      </div>
+      <div class="setting-block">
+        <div class="s-label"><span>Velocidad</span><span class="s-val" id="rate-vf">1.0×</span></div>
+        <input type="range" id="rate-f" min="0.5" max="2" step="0.1" value="1.0"
+          oninput="document.getElementById('rate-vf').textContent=parseFloat(this.value).toFixed(1)+'×'; syncSettings()">
+        <div class="speed-btns">
+          <button class="spd" onclick="setSpeed(0.75)">0.75×</button>
+          <button class="spd active" onclick="setSpeed(1.0)">1×</button>
+          <button class="spd" onclick="setSpeed(1.25)">1.25×</button>
+          <button class="spd" onclick="setSpeed(1.5)">1.5×</button>
+        </div>
+      </div>
+      <div class="setting-block">
+        <div class="s-label"><span>Tono</span><span class="s-val" id="pitch-vf">1.0</span></div>
+        <input type="range" id="pitch-f" min="0.5" max="1.5" step="0.1" value="1.0"
+          oninput="document.getElementById('pitch-vf').textContent=parseFloat(this.value).toFixed(1); syncSettings()">
+      </div>
+    </div>
+    <button class="btn-main" id="btn-read-file" style="display:none" onclick="startFromFile()">
+      <svg viewBox="0 0 24 24" width="17" height="17"><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
+      Leer archivo
+    </button>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="panel" id="panel-player">
+    <div class="status-bar" id="status-bar">
+      <div class="dot" id="dot"></div>
+      <span id="status-text">Carga un texto o archivo para comenzar.</span>
+      <div class="wave hidden" id="wave">
+        <div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div>
+      </div>
+    </div>
+    <div class="player-card">
+      <div class="now-reading">Leyendo ahora</div>
+      <div class="preview-text" id="preview-text">—</div>
+      <div class="progress-track" onclick="seekClick(event)">
+        <div class="progress-fill" id="prog-fill"></div>
+      </div>
+      <div class="prog-stats">
+        <span id="prog-pct">0%</span>
+        <span id="time-left">—</span>
+      </div>
+      <div class="controls">
+        <button class="btn-skip" onclick="skipBack()" title="Párrafo anterior">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button class="btn-play" id="btn-play" onclick="togglePlay()" disabled>
+          <svg viewBox="0 0 24 24" id="play-icon"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="btn-skip" onclick="skipFwd()" title="Párrafo siguiente">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18 14.5 12 6 6v12zm10-12v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="reader-container">
+      <div class="empty-player">
+        <span class="ei">🎧</span>
+        <p>Aquí verás el texto resaltado mientras se lee en voz alta.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const synth = window.speechSynthesis;
+let voices = [];
+let isPlaying = false, isPaused = false;
+let sentences = [], curIdx = 0;
+let loadedText = '';
+let extractedFileText = '';
+let currentFileName = '';
+
+// ── Voices ────────────────────────────────────────────────────────────────────
+function loadVoices() {
+  voices = synth.getVoices();
+  const es = voices.filter(v => v.lang.startsWith('es'));
+  const ordered = es.length ? [...es, ...voices.filter(v => !v.lang.startsWith('es'))] : voices;
+  ['voice-select','voice-select-f'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    if (!ordered.length) { sel.innerHTML = '<option>Sin voces disponibles</option>'; return; }
+    ordered.forEach(v => {
+      const o = document.createElement('option');
+      o.value = voices.indexOf(v);
+      o.textContent = `${v.name} (${v.lang})`;
+      sel.appendChild(o);
+    });
+  });
+}
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+setTimeout(loadVoices, 300);
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  const tabs = ['texto','archivo','player'];
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', tabs[i]===t));
+  document.querySelectorAll('.panel').forEach((el,i) => el.classList.toggle('active', tabs[i]===t));
+}
+
+// ── Settings sync ─────────────────────────────────────────────────────────────
+function syncSettings() {
+  const v1 = document.getElementById('voice-select').value;
+  const r1 = document.getElementById('rate').value;
+  const p1 = document.getElementById('pitch').value;
+  const vf = document.getElementById('voice-select-f');
+  const rf = document.getElementById('rate-f');
+  const pf = document.getElementById('pitch-f');
+  if (vf) vf.value = v1;
+  if (rf) { rf.value = r1; document.getElementById('rate-vf').textContent = parseFloat(r1).toFixed(1)+'×'; }
+  if (pf) { pf.value = p1; document.getElementById('pitch-vf').textContent = parseFloat(p1).toFixed(1); }
+}
+function setSpeed(v) {
+  ['rate','rate-f'].forEach(id => { const el=document.getElementById(id); if(el) el.value=v; });
+  document.getElementById('rate-v').textContent = v.toFixed(2)+'×';
+  const rvf = document.getElementById('rate-vf');
+  if(rvf) rvf.textContent = v.toFixed(2)+'×';
+  document.querySelectorAll('.spd').forEach(b => b.classList.toggle('active', parseFloat(b.textContent)===v));
+}
+function getRate() { return parseFloat(document.getElementById('rate').value); }
+function getPitch() { return parseFloat(document.getElementById('pitch').value); }
+function getVoice() {
+  const idx = parseInt(document.getElementById('voice-select').value);
+  return voices[idx] || null;
+}
+
+// ── Text input ────────────────────────────────────────────────────────────────
+function updateCharCount() {
+  const t = document.getElementById('text-input').value;
+  document.getElementById('char-count').textContent = t.length.toLocaleString() + ' caracteres';
+}
+
+// ── File handling with Claude API ─────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+function resetFile() {
+  extractedFileText = '';
+  currentFileName = '';
+  document.getElementById('upload-section').style.display = '';
+  document.getElementById('extracting-section').style.display = 'none';
+  document.getElementById('file-ready-section').style.display = 'none';
+  document.getElementById('file-error-section').style.display = 'none';
+  document.getElementById('file-settings').style.display = 'none';
+  document.getElementById('btn-read-file').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+async function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  currentFileName = file.name;
+
+  // Show extracting state
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('extracting-section').style.display = '';
+  document.getElementById('extracting-name').textContent = file.name;
+  document.getElementById('file-ready-section').style.display = 'none';
+  document.getElementById('file-error-section').style.display = 'none';
+
+  try {
+    let text = '';
+
+    if (ext === 'txt' || ext === 'md' || ext === 'rtf') {
+      // Plain text — read directly
+      text = await readAsText(file);
+      text = text.replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+    } else if (ext === 'html' || ext === 'htm') {
+      const raw = await readAsText(file);
+      const div = document.createElement('div');
+      div.innerHTML = raw;
+      text = (div.textContent || div.innerText || '').replace(/\s+/g,' ').trim();
+    } else if (ext === 'pdf') {
+      // Use Claude API to extract text from PDF
+      text = await extractWithClaude(file, 'pdf');
+    } else if (ext === 'epub') {
+      // Use Claude API for epub
+      text = await extractWithClaude(file, 'epub');
+    } else {
+      // Try plain text fallback
+      text = await readAsText(file);
+    }
+
+    if (!text || text.length < 10) throw new Error('No se pudo extraer texto del archivo.');
+
+    extractedFileText = text;
+
+    // Show ready state
+    document.getElementById('extracting-section').style.display = 'none';
+    document.getElementById('file-ready-section').style.display = '';
+    const icons = {pdf:'📄', epub:'📗', txt:'📝', md:'📝', html:'🌐'};
+    document.getElementById('file-icon-display').textContent = icons[ext] || '📄';
+    document.getElementById('fname-display').textContent = file.name;
+    document.getElementById('fmeta-display').textContent = text.length.toLocaleString() + ' caracteres extraídos · listo';
+    document.getElementById('file-settings').style.display = '';
+    document.getElementById('btn-read-file').style.display = '';
+
+  } catch(err) {
+    document.getElementById('extracting-section').style.display = 'none';
+    document.getElementById('file-error-section').style.display = '';
+    document.getElementById('file-error-text').textContent = '⚠ ' + (err.message || 'Error al procesar el archivo.');
+  }
+}
+
+function readAsText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = () => rej(new Error('No se pudo leer el archivo'));
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+function readAsBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.onerror = () => rej(new Error('No se pudo leer el archivo'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function extractWithClaude(file, type) {
+  const base64 = await readAsBase64(file);
+  const mediaType = type === 'pdf' ? 'application/pdf' : 'application/epub+zip';
+
+  // For PDFs use Claude's document vision; for epub treat as text
+  let messages;
+  if (type === 'pdf') {
+    messages = [{
+      role: 'user',
+      content: [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+        },
+        {
+          type: 'text',
+          text: 'Extrae todo el texto de este documento de forma limpia y continua, sin comentarios ni explicaciones. Solo el texto puro del documento, manteniendo párrafos separados por saltos de línea.'
+        }
+      ]
+    }];
+  } else {
+    // epub: try as text
+    const raw = await readAsText(file);
+    messages = [{
+      role: 'user',
+      content: `El siguiente contenido es un archivo epub/html. Extrae solo el texto legible, sin etiquetas HTML ni metadatos. Solo el texto puro del libro:\n\n${raw.slice(0, 50000)}`
+    }];
+  }
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8000,
+      messages
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Error de API (${resp.status})`);
+  }
+
+  const data = await resp.json();
+  const text = data.content?.find(b => b.type === 'text')?.text || '';
+  if (!text) throw new Error('La IA no pudo extraer texto del archivo.');
+  return text.trim();
+}
+
+// ── Speech engine ─────────────────────────────────────────────────────────────
+function splitSentences(text) {
+  const raw = text.match(/[^.!?。\n]+[.!?。\n]?\s*/g) || [text];
+  const chunks = [];
+  let cur = '';
+  for (const s of raw) {
+    if ((cur + s).length > 280 && cur.length > 60) { chunks.push(cur.trim()); cur = s; }
+    else cur += s;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks.filter(c => c.length > 0);
+}
+
+function startFromText() {
+  const text = document.getElementById('text-input').value.trim();
+  if (!text) { alert('Por favor escribe o pega texto primero.'); return; }
+  beginReading(text);
+}
+function startFromFile() {
+  if (!extractedFileText) { alert('Por favor carga un archivo primero.'); return; }
+  beginReading(extractedFileText);
+}
+
+function beginReading(text) {
+  stopAll();
+  loadedText = text;
+  sentences = splitSentences(text);
+  curIdx = 0;
+  renderReader();
+  switchTab('player');
+  playAt(0);
+}
+
+function playAt(idx) {
+  if (idx >= sentences.length) { onDone(); return; }
+  curIdx = idx;
+  const utt = new SpeechSynthesisUtterance(sentences[idx]);
+  const v = getVoice();
+  if (v) { utt.voice = v; utt.lang = v.lang; }
+  else utt.lang = 'es-ES';
+  utt.rate = getRate();
+  utt.pitch = getPitch();
+
+  utt.onstart = () => {
+    isPlaying = true; isPaused = false;
+    updateBtn(); updateProgress(); highlightAt(idx);
+    setStatus('speaking', `Reproduciendo… frase ${idx+1} de ${sentences.length}`);
+  };
+  utt.onend = () => { playAt(idx + 1); };
+  utt.onerror = e => { if (e.error !== 'interrupted') setStatus('error', 'Error: ' + e.error); };
+
+  synth.speak(utt);
+  document.getElementById('btn-play').disabled = false;
+}
+
+function togglePlay() {
+  if (!loadedText) return;
+  if (isPlaying && !isPaused) {
+    synth.pause(); isPaused = true; isPlaying = false;
+    updateBtn(); setStatus('ready', 'Pausado');
+    document.getElementById('wave').classList.add('hidden');
+  } else if (isPaused) {
+    synth.resume(); isPaused = false; isPlaying = true;
+    updateBtn(); setStatus('speaking', 'Reproduciendo…');
+    document.getElementById('wave').classList.remove('hidden');
+  } else if (sentences.length) {
+    playAt(curIdx);
+  }
+}
+
+function stopAll() {
+  synth.cancel(); isPlaying = false; isPaused = false; updateBtn();
+}
+function skipFwd() { if (!sentences.length) return; stopAll(); playAt(Math.min(curIdx+1, sentences.length-1)); }
+function skipBack() { if (!sentences.length) return; stopAll(); playAt(Math.max(curIdx-1, 0)); }
+
+function onDone() {
+  isPlaying = false; isPaused = false; updateBtn();
+  setStatus('ready', '¡Lectura completa! 🎉');
+  document.getElementById('wave').classList.add('hidden');
+  document.getElementById('prog-fill').style.width = '100%';
+  document.getElementById('prog-pct').textContent = '100%';
+}
+
+function updateBtn() {
+  const icon = document.getElementById('play-icon');
+  icon.innerHTML = (isPlaying && !isPaused)
+    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    : '<polygon points="5,3 19,12 5,21"/>';
+}
+
+function updateProgress() {
+  if (!sentences.length) return;
+  const pct = (curIdx / sentences.length * 100).toFixed(1);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  const charsLeft = sentences.slice(curIdx).join(' ').length;
+  const mins = Math.round(charsLeft / (200 * getRate()));
+  document.getElementById('time-left').textContent = `~${mins} min restantes`;
+  const prev = sentences[curIdx] || '—';
+  document.getElementById('preview-text').textContent = prev.length > 110 ? prev.slice(0,107)+'…' : prev;
+}
+
+function seekClick(e) {
+  if (!sentences.length) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - r.left) / r.width;
+  stopAll();
+  playAt(Math.max(0, Math.min(Math.floor(pct * sentences.length), sentences.length-1)));
+}
+
+// ── Reader render ─────────────────────────────────────────────────────────────
+function renderReader() {
+  const html = sentences.map((s,i) =>
+    `<span id="s${i}" class="sent">${esc(s)} </span>`
+  ).join('');
+  document.getElementById('reader-container').innerHTML = `<div class="text-reader">${html}</div>`;
+}
+function highlightAt(idx) {
+  document.querySelectorAll('.sent').forEach((el,i) => {
+    el.className = 'sent';
+    if (i < idx) el.classList.add('sent-done');
+    if (i === idx) el.classList.add('sent-active');
+  });
+  document.getElementById('s'+idx)?.scrollIntoView({behavior:'smooth',block:'center'});
+  updateProgress();
+}
+function esc(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Status ────────────────────────────────────────────────────────────────────
+// PWA Service Worker
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+
+  function setStatus(type, msg) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot' + (type==='speaking'?' speaking':type==='ready'?' ready':type==='error'?' error':'');
+  document.getElementById('status-text').textContent = msg;
+  document.getElementById('wave').classList.toggle('hidden', type !== 'speaking');
+}
+</script>
+</body>
+</html>
